@@ -17,7 +17,7 @@ import java.util.Properties;
 public class TopicTest {
 	
 //	private static final String ZK_CONNECT = "192.168.1.129:2181,192.168.1.130:2181,192.168.1.131:2181";
-	private static final String ZK_CONNECT = "192.168.120.110:2181";
+	private static final String ZK_CONNECT = "192.168.120.224:2181";
 	private static final int SESSION_TIMEOUT = 30000;
 	private static final int CONNECT_TIMEOUT = 30000;
 	private static final String TOPIC = "topic-api-test";
@@ -28,15 +28,15 @@ public class TopicTest {
 		public static void main(String[] args) {
 			
 			//1.创建主题
-			String topic = "topic-blance";
-			int partition = 10;
-			int replica = 2;
+			String topic = "first-topic";
+			int partition = 1;
+			int replica = 1;
 			createTopic(topic, partition, replica, AdminUtils.createTopic$default$5());
-			
+
 			//7.删除主题 TODO
-//			String topic = "FirstTopic";
+//			String topic = "first-topic";
 //			deleteTopic(topic);
-			
+//
 			//2.查询主题配置信息
 //			String topic = "";
 //			Properties topicProperties = queryTopicInfo(topic);

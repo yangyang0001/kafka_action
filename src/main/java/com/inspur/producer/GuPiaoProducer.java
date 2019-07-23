@@ -15,10 +15,11 @@ import java.util.Random;
 public class GuPiaoProducer {
 	
 	private static Logger LOG = Logger.getLogger(GuPiaoProducer.class);
-	private static String BROKER_LIST = "192.168.120.110:9092,192.168.120.150:9092,192.168.120.224:9092";
+//	private static String BROKER_LIST = "192.168.120.110:9092,192.168.120.150:9092,192.168.120.224:9092";
+	private static String BROKER_LIST = "192.168.120.110:9092";
 //	private static String TOPIC = "GuPiaoHangQing";
-	private static String TOPIC = "topic-blance";
-	private static int MSG_SIZE = 100;
+	private static String TOPIC = "first-topic";
+	private static int MSG_SIZE = 20;
 	
 	private static Properties producerConfig = new Properties();
 	private static KafkaProducer<String, String> kafkaProducer = null;
@@ -71,7 +72,7 @@ public class GuPiaoProducer {
 						 null, gupiao.toString());
 				kafkaProducer.send(record);//发送并遗忘!
 				if(num++ % 100 == 0	){
-					Thread.currentThread().sleep(5000L);		//每100条消息记录线程休息2s
+					Thread.currentThread().sleep(1000L);		//每100条消息记录线程休息1s
 				}
 			}
 		} catch (Exception e) {
@@ -97,6 +98,7 @@ public class GuPiaoProducer {
 					@Override
 					public void onCompletion(RecordMetadata metadata, Exception exception) {
 						if(exception != null){
+							System.out.println("exception -------------->:" + exception.getMessage());
 							LOG.error(exception.getMessage());
 						}
 						if(metadata != null){
@@ -104,8 +106,8 @@ public class GuPiaoProducer {
 						}
 					}
 				});
-				if(num++ % 100 == 0){
-					Thread.currentThread().sleep(2000L);
+				if(num++ % 2 == 0){
+					Thread.currentThread().sleep(500L);
 				}
 			}
 		} catch (Exception e) {
@@ -117,7 +119,7 @@ public class GuPiaoProducer {
 	
 
 	public static void main(String[] args) {
-		sendMessage();
-//		sendMessageWithCallBack();
+//		sendMessage();
+		sendMessageWithCallBack();
 	}
 }

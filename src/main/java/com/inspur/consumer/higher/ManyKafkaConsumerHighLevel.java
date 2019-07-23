@@ -12,26 +12,27 @@ import java.util.*;
  * 		手动提交又分为两种方式:同步提交和异步提交两种方式!同时也得配置参数！
  * 需要手动提交偏移量的场景:
  * 		在做完一系列的业务之后我们认为成功了!
+ *
+ * 经过测试得出如下结果:
+ *      启动多个消费者:在同一个组中,只有一个消费者独占一个分区！书中也是给出同样的结论!
  * @author YangJianWei
  *
  */
 @SuppressWarnings({"rawtypes","unchecked"})
-public class KafkaConsumerHighLevelTest{
-	
-	private static Properties config = new Properties();
-	private static KafkaConsumer consumer = null;
-	
+public class ManyKafkaConsumerHighLevel {
+
 	private static String BROKER_LIST = "192.168.120.110:9092,192.168.120.150:9092,192.168.120.224:9092";
 
-	
-	static {
+	private static KafkaConsumer getConsumer() {
+		KafkaConsumer consumer = null;
+
+		Properties config = new Properties();
 		config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, BROKER_LIST);
 		config.put(ConsumerConfig.GROUP_ID_CONFIG, "first_group");	    //属于哪个分组
 //		config.put(ConsumerConfig.CLIENT_ID_CONFIG, "AAAA_CLIENT_0");	//客户端定义一个ID,区分不同的客户端!
 
 		//配置是否从最开始的偏移量开始读取数据!(group_id和client_id取个全新的名字就OK了)[在测试的时候要特别注意,把这个注释掉]
 //		config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-
 
 		/**
 		 * 自动提交的时候要配置的两个参数!
@@ -45,12 +46,43 @@ public class KafkaConsumerHighLevelTest{
 		 */
 //		config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);		//设置手动提交偏移量
 //		config.put (ConsumerConfig.FETCH_MAX_BYTES_CONFIG, 1024); 			//为了便于测试,这里设置一次 fetch 请求取得的数据最大值为 lKB,默认是 5MB
-		
+
 		config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
-		config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer") ;
+		config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
 		consumer = new KafkaConsumer(config);
+
+		return consumer;
 	}
+
 	
+//	static {
+//		config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, BROKER_LIST);
+//		config.put(ConsumerConfig.GROUP_ID_CONFIG, "first_group");	    //属于哪个分组
+////		config.put(ConsumerConfig.CLIENT_ID_CONFIG, "AAAA_CLIENT_0");	//客户端定义一个ID,区分不同的客户端!
+//
+//		//配置是否从最开始的偏移量开始读取数据!(group_id和client_id取个全新的名字就OK了)[在测试的时候要特别注意,把这个注释掉]
+////		config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+//
+//
+//		/**
+//		 * 自动提交的时候要配置的两个参数!
+//		 * 自动提交和手动提交偏移量是kafka对offset的两种提交策略!自动提交的一定要配置这两个参数!(这也是默认的提交策略)
+//		 */
+//		config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, true); 		//显示设置偏移量自动提交
+//		config.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 1000); 	//设置偏移量提交时间间隔
+//
+//		/**
+//		 * 手动提交需要配置以下的参数
+//		 */
+////		config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);		//设置手动提交偏移量
+////		config.put (ConsumerConfig.FETCH_MAX_BYTES_CONFIG, 1024); 			//为了便于测试,这里设置一次 fetch 请求取得的数据最大值为 lKB,默认是 5MB
+//
+//		config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
+//		config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
+//		consumer = new KafkaConsumer(config);
+//	}
+
+
 	/**
 	 * 消费者消费完消息后自动提交消息的offset
 	 * 自动提交策略
@@ -59,16 +91,18 @@ public class KafkaConsumerHighLevelTest{
 	 * auto.commit.interval.ms
 	 */
 	public static void consumeZiDongCommit(String topic){
+		KafkaConsumer consumer = getConsumer();
+
 		consumer.subscribe(Collections.singletonList(topic));
 		int count = 0;
 		try {
 			while(true){
 				ConsumerRecords<String, String> consumerRecords = consumer.poll(100);
 				for(ConsumerRecord<String, String> consumerRecord : consumerRecords){
-					System.out.println("partition -:" + consumerRecord.partition() +
+					System.out.println("partition ---:" + consumerRecord.partition() +
 							           ", topic -----:" + consumerRecord.topic() +
 							           ", offset ----:" + consumerRecord.offset() +
-								       ", value -----:" + consumerRecord.value() +
+								       ", value -----:" + consumerRecord.value()  +
 							           ", key -------:" + consumerRecord.key());
 				}
 			}
@@ -85,6 +119,9 @@ public class KafkaConsumerHighLevelTest{
 	 * @param topic
 	 */
 	public static void consumeTongBuCommit(String topic){
+
+		KafkaConsumer consumer = getConsumer();
+
 		consumer.subscribe(Collections.singletonList(topic));
 		try {
 			while(true){
@@ -95,7 +132,7 @@ public class KafkaConsumerHighLevelTest{
 					System.out.println("offset -----------:" + consumerRecord.offset());
 					System.out.println("key --------------:" + consumerRecord.key());
 					System.out.println("value ------------:" + consumerRecord.value());
-					System.out.println("============================================================================");
+					System.out.println("===========================================================================");
 				}
 				try {
 					consumer.commitSync();
@@ -116,14 +153,17 @@ public class KafkaConsumerHighLevelTest{
 	 * @param topic
 	 */
 	public static void consumeYiBuCommit(String topic){
+
+		KafkaConsumer consumer = getConsumer();
+
 		consumer.subscribe(Collections.singletonList(topic));
 		try {
 			while(true){
 				ConsumerRecords<String, String> consumerRecords = consumer.poll(100);
 				for(ConsumerRecord consumerRecord : consumerRecords){
 					System.out.println("topic ------------:" + consumerRecord.topic());
-					System.out.println("partition --------:" + consumerRecord.partition());
 					System.out.println("offset -----------:" + consumerRecord.offset());
+					System.out.println("partition --------:" + consumerRecord.partition());
 					System.out.println("key --------------:" + consumerRecord.key());
 					System.out.println("value ------------:" + consumerRecord.value());
 					System.out.println("============================================================================");
@@ -147,16 +187,19 @@ public class KafkaConsumerHighLevelTest{
 	 * @param topic
 	 */
 	public static void consumeYiBuCommitWithCallback(String topic){
+
+		KafkaConsumer consumer = getConsumer();
+
 		consumer.subscribe(Collections.singletonList(topic));
 		try {
 			while(true){
 				ConsumerRecords<String, String> consumerRecords = consumer.poll(100);
 				for(ConsumerRecord consumerRecord : consumerRecords){
-					System.out.println("topic ------------:" + consumerRecord.topic());
-					System.out.println("partition --------:" + consumerRecord.partition());
-					System.out.println("offset -----------:" + consumerRecord.offset());
-					System.out.println("key --------------:" + consumerRecord.key());
-					System.out.println("value ------------:" + consumerRecord.value());
+					System.out.println("topic -----------:" + consumerRecord.topic());
+					System.out.println("partition -------:" + consumerRecord.partition());
+					System.out.println("offset ----------:" + consumerRecord.offset());
+					System.out.println("key -------------:" + consumerRecord.key());
+					System.out.println("value -----------:" + consumerRecord.value());
 					System.out.println("============================================================================");
 				}
 				try {
@@ -164,7 +207,7 @@ public class KafkaConsumerHighLevelTest{
 						@Override
 						public void onComplete(Map<TopicPartition, OffsetAndMetadata> offsets, Exception exception) {
 							if(exception == null){
-								System.out.println("commitAsync Callback offsets ------------:" + offsets);
+								System.out.println("commitAsync Callback offsets -------------:" + offsets);
 							} else {
 								//此时提交发生了异常就需要重新提交这部分的偏移量!
 								exception.printStackTrace();
@@ -186,6 +229,9 @@ public class KafkaConsumerHighLevelTest{
 	 * 根据时间,主题,分区kafka API中提供了一个根据时间查询大于等于这个时间的最近的一条消息的偏移量的方法!
 	 */
 	public static void consumeRecordWithTime(String topic, int partition, long time){
+
+		KafkaConsumer consumer = getConsumer();
+
 		//订阅主题分区的方法!
 		consumer.assign(Arrays.asList(new TopicPartition(topic, partition)));
 		try {
@@ -209,11 +255,11 @@ public class KafkaConsumerHighLevelTest{
 			while(true){
 				ConsumerRecords<String, String> consumerRecords = consumer.poll(100);
 				for(ConsumerRecord consumerRecord : consumerRecords){
-					System.out.println("topic ------------:" + consumerRecord.topic());
-					System.out.println("partition --------:" + consumerRecord.partition());
-					System.out.println("offset -----------:" + consumerRecord.offset());
-					System.out.println("key --------------:" + consumerRecord.key());
-					System.out.println("value ------------:" + consumerRecord.value());
+					System.out.println("topic -------------:" + consumerRecord.topic());
+					System.out.println("partition ---------:" + consumerRecord.partition());
+					System.out.println("offset ------------:" + consumerRecord.offset());
+					System.out.println("key ---------------:" + consumerRecord.key());
+					System.out.println("value -------------:" + consumerRecord.value());
 					System.out.println("============================================================================");
 				}
 			}
@@ -231,6 +277,9 @@ public class KafkaConsumerHighLevelTest{
 	 * @param endOffset
 	 */
 	public static void consumeStartOffsetAndEndOffsetRecord(String topic, int partition, long startOffset, long endOffset){
+
+		KafkaConsumer consumer = getConsumer();
+
 		TopicPartition topicPartition = new TopicPartition(topic, partition);
 		//指定topic个某个分区下的必须用assign否则报No current assignment for partition 异常 
 		consumer.assign(Arrays.asList(topicPartition));
@@ -246,11 +295,11 @@ public class KafkaConsumerHighLevelTest{
 			while(true){
 				ConsumerRecords<String, String> consumerRecords = consumer.poll(100);
 				for(ConsumerRecord consumerRecord : consumerRecords){
-					System.out.println("topic ------------:" + consumerRecord.topic());
-					System.out.println("partition --------:" + consumerRecord.partition());
-					System.out.println("offset -----------:" + consumerRecord.offset());
-					System.out.println("key --------------:" + consumerRecord.key());
-					System.out.println("value ------------:" + consumerRecord.value());
+					System.out.println("topic --------------:" + consumerRecord.topic());
+					System.out.println("partition ----------:" + consumerRecord.partition());
+					System.out.println("offset -------------:" + consumerRecord.offset());
+					System.out.println("key ----------------:" + consumerRecord.key());
+					System.out.println("value --------------:" + consumerRecord.value());
 					System.out.println("============================================================================");
 //					if(consumerRecord.offset() == endOffset){
 //						Thread.currentThread().sleep(1000L * 3600);
@@ -266,7 +315,8 @@ public class KafkaConsumerHighLevelTest{
 			consumer.close();
 		}
 	}
-	
+
+
 	public static void main(String[] args) {
 		/**
 		 * 首先测试自动提交offset的情况
